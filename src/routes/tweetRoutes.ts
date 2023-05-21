@@ -1,9 +1,10 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import checkAuthorization, { CustomRequest } from '../middleware/checkAuth';
+
 const tweetRoutes = express.Router();
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET as string;
+
 
 //create tweet
 tweetRoutes.post('/', checkAuthorization, async (req: CustomRequest, res) => {
@@ -20,7 +21,6 @@ tweetRoutes.post('/', checkAuthorization, async (req: CustomRequest, res) => {
             },
             include: { user: true },
         });
-
         res.json(result);
     } catch (e) {
         res.status(400).json({ error: 'Username and email should be unique' });

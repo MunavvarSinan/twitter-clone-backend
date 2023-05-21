@@ -1,6 +1,7 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken'
+import nodemailer from 'nodemailer'
 
 
 const authRoutes = express.Router();
@@ -57,6 +58,59 @@ authRoutes.post('/login', async (req, res) => {
                 },
             },
         });
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'munavvarsinan987@gmail.com',
+                pass: 'lbcibaxivctdhjbd',
+            },
+        });
+        const message = {
+            from: 'munavvarsinan987@gmail.com',
+            to: email,
+            subject: 'OTP Verification',
+            html: `<html>
+<head>
+  <meta charset="UTF-8">
+  <title>OTP Email</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333333;
+    }
+
+    h2 {
+      color: #555555;
+    }
+
+    p {
+      color: #555555;
+    }
+
+    .otp {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>OTP Verification</h1>
+  <p>Your One-Time Password (OTP) is:</p>
+  <h2 class="otp">${emailToken}</h2>
+  <p>Please use this OTP to verify your account.</p>
+</body>
+</html>`
+        }
+        transporter.sendMail(message, (error, info) => {
+            if (error) {
+                console.error(error);
+            } else {
+                console.log(info.response);
+            }
+        })
         res.sendStatus(200);
     } catch (e) {
         console.log(e);
