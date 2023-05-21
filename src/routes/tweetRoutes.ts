@@ -1,30 +1,53 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-
+import checkAuthorization, { CustomRequest } from '../middleware/checkAuth';
 const tweetRoutes = express.Router();
 const prisma = new PrismaClient();
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
 //create tweet
-tweetRoutes.post('/', async (req, res) => {
-    const { content, image, userId } = req.body;
+tweetRoutes.post('/', checkAuthorization, async (req: CustomRequest, res) => {
+    const { content, image } = req.body;
+    const authHeader = req.headers['authorization'];
+    const userId = req?.userId as number
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
     try {
         const result = await prisma.tweet.create({
             data: {
                 content,
                 image,
                 userId
-            }
-        })
-        res.status(200).json(result);
+            },
+            include: { user: true },
+        });
 
-    } catch (error) {
-        res.status(400).json({ error: "Failed to create tweet" })
+        res.json(result);
+    } catch (e) {
+        res.status(400).json({ error: 'Username and email should be unique' });
     }
 
 })
 
 // list tweets
 tweetRoutes.get('/', async (req, res) => {
-    const tweets = await prisma.tweet.findMany();
+    // { include: { user: true } } is used to include the user object in the tweet object instead of creating two seperate queries to list the tweets and the user
+    /*
+    include: { user: { select: { name: true, username: true, image: true } } } is used to include only the name, username and image of the user in the tweet object
+    */
+    const tweets = await prisma.tweet.findMany({
+        include: {
+            user: {
+                select: {
+                    name: true,
+                    username: true,
+                    image: true
+                }
+            },
+        },
+
+
+
+    });
     res.json(tweets);
 })
 
@@ -32,7 +55,7 @@ tweetRoutes.get('/', async (req, res) => {
 tweetRoutes.get('/:id', async (req, res) => {
     const { id } = req.params;
     try {
-        const result = await prisma.tweet.findUnique({ where: { id: Number(id) } });
+        const result = await prisma.tweet.findUnique({ where: { id: Number(id) }, include: { user: true } });
         if (!result) return res.status(404).json({ error: "Tweet not found" });
         res.status(200).json(result);
     } catch (error) {
